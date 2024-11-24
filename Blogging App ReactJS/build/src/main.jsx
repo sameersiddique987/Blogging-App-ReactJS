@@ -12,17 +12,15 @@ import Signup from './pages/Signup.jsx'
 import ProtectedRouts from './conponents/ProtectedRouts.jsx'
 import Profile from './pages/Profile.jsx'
 import AllBlogs from './pages/AllBlogs.jsx'
-import SingleUser from './pages/singleUser/singleUser.jsx'
-import { Provider } from 'react-redux'
-import { store } from './pages/config/redux/store/store.js'
+import SingleUser from './pages/SingleUser.jsx'
 const router = createBrowserRouter ([
   {
     path : "/",
     element : <Layout />,
     children : [
       {
-        path : "",
-        element : <AllBlogs/>
+        path : "Dashboard" ,
+        element : <Dashboard />
       },
       {
         path : "Login" ,
@@ -36,13 +34,13 @@ const router = createBrowserRouter ([
         path : "profile",
         element : <ProtectedRouts component={<Profile/>} />
       },
-      {
-         path : "Dashboard" ,
-         element : <ProtectedRouts component={<Dashboard/>} />
+       {
+        path : "allBlogs",
+        element : <ProtectedRouts component={<AllBlogs/>} />
       },
       {
         path : "SingleUser/id",
-        element : <SingleUser/> 
+        element : <ProtectedRouts component={<SingleUser/>} />
       },
       {
         path : "*",
@@ -52,12 +50,8 @@ const router = createBrowserRouter ([
   }
 ])
 
-
-
-
 createRoot(document.getElementById('root')).render(
-  <Provider store={store}>
-  <RouterProvider router={router}/>
-  </Provider>
+  <RouterProvider router={router}>
 
+  </RouterProvider>
 )

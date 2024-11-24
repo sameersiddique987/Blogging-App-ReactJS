@@ -1,40 +1,42 @@
 
 
 import { useForm } from 'react-hook-form';
-import React, { useState } from 'react'
+import React, { useEffect, useState } from 'react'
 import {db, auth, getData, sendData, deleteDocument } from '../firebase/firebaseMethords';
 import { onAuthStateChanged } from 'firebase/auth';
-import {  doc, deleteDoc } from "firebase/firestore"; 
+import {  doc, deleteDoc, query, collection, serverTimestamp, where, getDocs } from "firebase/firestore"; 
 function Dashboard() {
-  const [blogs , setBlogs] = useState([])
+  
+  const [myBlogs, setMyBlogs] = useState([]);
+ 
+  const [users, setusers] = useState([]);
+  const [blogs, setblogs] = useState([])
+
+  
+
   
   
 
-
-
-
-
-
-
-
+  const deletebtn = (i, id) => {
+    myBlogs.length === 1 ? setGotData(true) : null
+    myBlogs.splice(i, 1);
+    setMyBlogs([...myBlogs]);
     
+    deleteDocument(id, 'blogs')
+      .then(res => {
+        console.log(res);
+      })
+      .catch(err => {
+        console.log(err);
+      })
+  }
+
+  
    
-  const deletebtn = async (uid, index) => {
-  try{
-console.log(uid);
-  await deleteDocument(uid , blogs)
-    // await deleteDoc(doc(db, "blogs", uid));
-    console.log("delete firebase")
-      blogs.splice(index , 1)
-      setBlogs([...blogs])
-        
-  } 
-catch (error) {
-    console.log(error);
-    
-  }
 
-  }
+
+
+  
   const editbtn = (index) => {
     console.log("edit");
     const updatedTitle = prompt("Updated Title");
@@ -51,24 +53,74 @@ catch (error) {
         }
         return blog;
       });
-  
       setBlogs(updatedBlogs); 
     }
   };
+
+  useEffect(() => {
+    onAuthStateChanged(auth, async (user) => {
+      if (user) {
+        const userQuery = query(collection(db, "users"), where("id", "==", user.uid));
+        const userSnapshot = await getDocs(userQuery);
+        const tempUsers = [];
+        userSnapshot.forEach((doc) => {
+          tempUsers.push(doc.data());
+        });
+        setusers(tempUsers); // Correctly update state
+        console.log("Users: ", tempUsers);
   
-  useState(() => { 
-   onAuthStateChanged(auth ,async (user) => {
-   if(user){
-    console.log(user.uid);
-    const data = await getData('blogs',user.uid)
-    
-    console.log(data);
-    
-    setBlogs([...data])
-   }
-   })
-   
-  },[])
+        const blogQuery = query(collection(db, "blogs"), where("uid", "==", user.uid));
+        const blogSnapshot = await getDocs(blogQuery);
+        const tempBlogs = [];
+        blogSnapshot.forEach((doc) => {
+          tempBlogs.push(doc.data());
+        });
+        setblogs(tempBlogs); // Correctly update state
+        console.log("Blogs: ", tempBlogs);
+      }
+    });
+  }, []);
+  
+  const formValue = async (data) => {
+    try {
+      // نیا بلاگ ڈیٹا
+      const newBlog = {
+        title: data.title,
+        description: data.description,
+        uid: auth.currentUser.uid,
+        pfp: users[0]?.profileImage || "", // User کی پروفائل تصویر
+        createdAt: serverTimestamp(), // Firebase ٹائم اسٹیمپ
+      };
+  
+      // Firebase میں ڈیٹا بھیجنا
+      await sendData(newBlog, "blogs");
+  
+      Swal.fire({
+        title: "Success!",
+        text: "Your Blog Post Successfully",
+        icon: "success",
+        confirmButtonColor: "#234e94",
+        confirmButtonText: "Post",
+      });
+  
+      // بلاگز کی اسٹیٹ اپڈیٹ کریں
+      setblogs((prevBlogs) => [...prevBlogs, { ...newBlog, createdAt: new Date() }]);
+  
+      console.log("New Blog Added: ", newBlog);
+    } catch (error) {
+      console.error("Error while posting blog: ", error);
+    }
+    reset();
+  };
+  
+  
+
+
+
+
+
+ 
+
   const {
     register,
     handleSubmit,
@@ -76,28 +128,45 @@ catch (error) {
     formState: { errors },
   } = useForm()
 
- async function formValue(data) {
-    console.log(data);
-    try {
-      const response = await sendData({
-     title : data.title ,
-     description : data.description ,
-     uid : auth.currentUser.uid
-      } ,'blogs')
-      blogs.push({
-        title : data.title ,
-     description : data.description ,
-     uid : auth.currentUser.uid
-      })
-      setBlogs([...blogs])
-      console.log(response);
-      reset()
-      
-    } catch (error) {
-      console.log(error);
-      
-    }
- }
+
+
+// const formValue= async (data) => {
+//   console.log(data)
+//   try {
+//     const response = await sendData({
+//       title: data.title,
+//       description: data.description,
+//       uid: auth.currentUser.uid,
+//       pfp: users[0].profileImage,
+//       createdAt: serverTimestamp()  
+//     }, 'blogs')
+//     const newblog ={
+//       title: data.title,
+//       description: data.description,
+//       uid: auth.currentUser.uid,
+//       pfp: users[0].profileImage,
+//       createdAt: new Date()  
+//     }
+    
+    
+
+//     Swal.fire({
+//       title: 'Success!',
+//       text: 'Your Blog Post Successfully',
+//       icon: 'Success',
+//       confirmButtonColor: '#234e94',
+//       confirmButtonText: 'Post'
+//     })
+//     setblogs((prevBlogs) => [...prevBlogs, newblog]); // Update state
+//     console.log(response);
+
+//   } catch (error) {
+//     console.error(error)
+//   }
+//   reset()
+// }
+
+  
   return (
     <div>
     <div>
@@ -132,8 +201,12 @@ catch (error) {
    <div className=" card  t-5 bg-white px-10 mx-44 border border-none  py-5 my-5  rounded p-10">
    <h1>{item.title}</h1>
    <h5>{item.description} </h5>
-   <button onClick={() => deletebtn(item.uid , index)} type="button" className="text-gray-900 bg-white border border-gray-300 focus:outline-none hover:bg-gray-100 focus:ring-4 focus:ring-gray-100 font-medium rounded-lg text-sm px-5 py-2.5 me-2 mb-2 dark:bg-gray-800 dark:text-white dark:border-gray-600 dark:hover:bg-gray-700 dark:hover:border-gray-600 dark:focus:ring-gray-700">Delete</button>
-   <button onClick={() => editbtn(  index)} type="button" className="text-gray-900 bg-white border border-gray-300 focus:outline-none hover:bg-gray-100 focus:ring-4 focus:ring-gray-100 font-medium rounded-lg text-sm px-5 py-2.5 me-2 mb-2 dark:bg-gray-800 dark:text-white dark:border-gray-600 dark:hover:bg-gray-700 dark:hover:border-gray-600 dark:focus:ring-gray-700">Edit</button>
+   <div>
+   
+   <button onClick={() => deletebtn(index , item.id)} type="button" className="text-gray-900 bg-white border border-gray-300 focus:outline-none hover:bg-gray-100 focus:ring-4 focus:ring-gray-100 font-medium rounded-lg text-sm px-4 py-2 me-2 mb-2 dark:bg-gray-800 dark:text-white dark:border-gray-600 dark:hover:bg-gray-700 dark:hover:border-gray-600 dark:focus:ring-gray-700">Delete</button>
+   <button onClick={() => editbtn(index)} type="button" className="text-gray-900 bg-white border border-gray-300 focus:outline-none hover:bg-gray-100 focus:ring-4 focus:ring-gray-100 font-medium rounded-lg text-sm px-6 py-2 me-2 mb-2 dark:bg-gray-800 dark:text-white dark:border-gray-600 dark:hover:bg-gray-700 dark:hover:border-gray-600 dark:focus:ring-gray-700">Edit</button>
+   </div>
+
 
   </div>
    </div>

@@ -1,12 +1,7 @@
 import React from 'react'
 import { useForm } from 'react-hook-form';
-import {  loginUser } from '../firebase/firebaseMethords';
-import { useNavigate } from 'react-router-dom';
-
-
+import { loginUser } from '../firebase/firebaseMethords';
 function Login() {
-  const navigate = useNavigate()
-
   const {
     register,
     handleSubmit,
@@ -14,44 +9,20 @@ function Login() {
     formState: { errors },
   } = useForm()
 
-  const  formValue = async (data) => {
+ async function formValue(data) {
     console.log(data);
-
     try {
       const userData = await loginUser({
         email : data.email ,
         password : data.password
       })
       console.log(userData);
-      navigate("/")
+      
     } catch (error) {
       console.log(error);
       
     }
   }
-
-  
-  // const signInUser = async (data) => {
-    
-  //   signInWithEmailAndPassword({
-  //     email : data.email ,
-  //    password : data.password,
-     
-     
-  // })
-
-  
-  //     .then(() => {
-  //       navigate('/')
-  //     })
-  //     .catch((error) => {
-  //       const errorMessage = error.message;
-  //       alert(errorMessage)
-  //     });
-  // }
-
-
-
   return (
     <div>
       <div>

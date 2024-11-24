@@ -1,59 +1,118 @@
+import { useEffect, useState } from "react";
+import { useLocation, useNavigate, Link } from "react-router-dom";
+import Swal from "sweetalert2";
+import { db, auth, signOutUser } from "../firebase/firebaseMethords";
+import { onAuthStateChanged } from "firebase/auth";
+import { collection, getDocs, query, where } from "firebase/firestore";
 
-import React from 'react'
-import { useNavigate } from 'react-router-dom'
-import { signOutUser } from '../firebase/firebaseMethords'
-
-function Navbar() {
-
-const navigate = useNavigate()
-const logout = async () => {
-  const user = await signOutUser()
-  setisUser(false)
-  console.log(user);
-  navigate('login')
+const Navbar = () => {
+  let navigate = useNavigate();
+  const currentPage = useLocation();
+  const [Data, setData] = useState([]);
   
-}
+
+  // Logout user
+  const userLogout = () => {
+    Swal.fire({
+      title: "Success!",
+      text: "You are logged out successfully",
+      icon: "success",
+      confirmButtonText: "Logout",
+      confirmButtonColor: "#234e94",
+    });
+    signOutUser();
+     setData([]);
+    navigate("/login");
+  };
+
+  
+
+
+  useEffect(() => {
+    const unsubscribe = onAuthStateChanged(auth, async (user) => {
+      if (user) {
+        try {
+          const q = query(collection(db, "users"), where("id", "==", user.uid));
+          const querySnapshot = await getDocs(q);
+          const userDataArray = []; // Temporary array to store user data
+  
+          querySnapshot.forEach((doc) => {
+            // console.log(doc.data());
+            userDataArray.push(doc.data());
+          });
+        
+          // Update Data state
+          if (userDataArray.length > 0) {
+            setData(userDataArray);
+          }
+          console.log(user);
+        } catch (error) {
+          console.log(error);
+        }
+      }
+    });
+    return () => unsubscribe(); // Clean up subscription
+  }, []);
   return (
-    <div>
-        
+    <nav className="navbar bg-blue-700 text-white px-4 shadow-lg">
+      {/* Left Section: Branding */}
+      <div className="flex items-center">
+        <a className="text-xl font-bold cursor-pointer">Blogging App</a>
+      </div>
 
-<nav className="bg-[#4ade80] border-gray-200 dark:bg-gray-900">
-  <div className="max-w-screen-xl flex flex-wrap items-center justify-between mx-auto p-4">
-    <a href="https://flowbite.com/" className="flex items-center space-x-3 rtl:space-x-reverse">
-        
-        <span className=" text-white self-center text-3xl font-semibold whitespace-nowrap dark:text-white">Blogging App</span>
-    </a>
-    <button data-collapse-toggle="navbar-default" type="button" className="inline-flex items-center p-2 w-10 h-10 justify-center text-sm text-gray-500 rounded-sm md:hidden hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-gray-200 dark:text-gray-400 dark:hover:bg-gray-700 dark:focus:ring-gray-600" aria-controls="navbar-default" aria-expanded="false">
-        <span className="sr-only">Open main menu</span>
-        <svg className="w-5 h-5" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 17 14">
-            <path stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M1 1h15M1 7h15M1 13h15"/>
-        </svg>
-    </button>
-    <div className="hidden w-full md:block md:w-auto" id="navbar-default">
-      <ul className="font-medium flex flex-col p-4 md:p-3 mt-4 border border-gray-100 rounded bg-gray-50 md:flex-row md:space-x-8 rtl:space-x-reverse md:mt-0 md:border-0 md:bg-white dark:bg-gray-800 md:dark:bg-gray-900 dark:border-gray-700">
-       
-        <li>
-          <a href="./Dashboard" className="block py-2 px-3 text-gray-900 rounded hover:bg-gray-100 md:hover:bg-transparent md:border-0 md:hover:text-blue-700 md:p-0 dark:text-white md:dark:hover:text-blue-500 dark:hover:bg-gray-700 dark:hover:text-white md:dark:hover:bg-transparent">Dashboard</a>
-        </li>
-        <li>
-          <a href="./AllBlogs" className="block py-2 px-3 text-gray-900 rounded hover:bg-gray-100 md:hover:bg-transparent md:border-0 md:hover:text-blue-700 md:p-0 dark:text-white md:dark:hover:text-blue-500 dark:hover:bg-gray-700 dark:hover:text-white md:dark:hover:bg-transparent">All Blogs</a>
-        </li>
-        <li>
-          <a href="./profile" className="block py-2 px-3 text-gray-900 rounded hover:bg-gray-100 md:hover:bg-transparent md:border-0 md:hover:text-blue-700 md:p-0 dark:text-white md:dark:hover:text-blue-500 dark:hover:bg-gray-700 dark:hover:text-white md:dark:hover:bg-transparent">Profile</a>
-        </li>
-        <li>
-          <a href="./Login" className="block py-2 px-3 text-gray-900 rounded hover:bg-gray-100 md:hover:bg-transparent md:border-0 md:hover:text-blue-700 md:p-0 dark:text-white md:dark:hover:text-blue-500 dark:hover:bg-gray-700 dark:hover:text-white md:dark:hover:bg-transparent">Login</a>
-        </li>
-        <li>
-          <a onClick={logout} href="" className="block py-2 px-3 text-gray-900 rounded hover:bg-gray-100 md:hover:bg-transparent md:border-0 md:hover:text-blue-700 md:p-0 dark:text-white md:dark:hover:text-blue-500 dark:hover:bg-gray-700 dark:hover:text-white md:dark:hover:bg-transparent">Logout</a>
-        </li>
-      </ul>
-    </div>
-  </div>
-</nav>
+      {/* Right Section: Profile & Dropdown */}
+      <div className="flex items-center gap-4 ml-auto">
+        <div className="dropdown dropdown-end">
+          <button
+            tabIndex={0}
+            className="btn btn-ghost btn-circle avatar focus:outline-none"
+          >
+            <div className="w-10 rounded-full">
+              <img
+                alt="profile"
+                src={
+                  Data.length > 0 && Data[0].file
+                    ? Data[0].file
+                    : "https://www.shutterstock.com/image-vector/avatar-gender-neutral-silhouette-vector-600nw-2470054311.jpg"
+                }
+              />
+            </div>
+          </button>
+          <ul
+            tabIndex={0}
+            className="menu menu-compact dropdown-content mt-3 p-2 shadow bg-white text-black rounded-box w-52"
+          >
+            {auth.currentUser ? (
+              <>
+                {currentPage.pathname !== "/" && (
+                  <li>
+                    <Link to="/">Allblogs</Link>
+                  </li>
+                )}
+                {currentPage.pathname !== "/Profile" && (
+                  <li>
+                    <Link to="Profile">Profile</Link>
+                  </li>
+                )}
+                {currentPage.pathname !== "/Dashboard" && (
+                  <li>
+                    <Link to="Dashboard">Dashboard</Link>
+                  </li>
+                )}
+                <li>
+                  <button onClick={userLogout}>Logout</button>
+                </li>
+              </>
+            ) : (
+              <li>
+                <Link to="Login">Login</Link>
+              </li>
+            )}
+          </ul>
+        </div>
+      </div>
+    </nav>
+  );
+};
 
-    </div>
-  )
-}
-
-export default Navbar
+export default Navbar;

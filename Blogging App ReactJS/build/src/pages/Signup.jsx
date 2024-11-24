@@ -2,9 +2,7 @@ import React from 'react'
 import { useForm } from 'react-hook-form';
 
 import { signUpUser, uploadImage } from '../firebase/firebaseMethords';
-import { useNavigate } from 'react-router-dom';
 const Signup =  () => {
-  const navigate = useNavigate()
   const {
     register,
     handleSubmit,
@@ -19,14 +17,14 @@ const formValue = async (data) => {
   
   try {
     const userData = await signUpUser({
-    FirstName : data.FirstName,
+    FirstName : data.FirstName ,
     LastName : data.LastName ,
     email : data.email ,
     password : data.password ,
     file : UserProfileImage
     })
     console.log(userData);
-    navigate("/Login")
+  FirstName = " "
   }  catch (error) {
     console.error(error);
 
